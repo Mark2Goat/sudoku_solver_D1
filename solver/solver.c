@@ -5,19 +5,50 @@
 // N is the size of the 2D matrix N*N
 #define N 9
 
-void to_grid(FILE* ptr)
+
+//convert the file into a grid
+
+void to_grid(FILE* ptr, int grid[N][N])
 {
-	char str[110];
+	char str[81];
 	char ch;
+
+	//get every char and put these in str
 	while(!feof(ptr))
 	{
 		ch = fgetc(ptr);
-		if(&ch != 0)
+		if(ch != ' ' && ch != '\n')
+		{
 			strncat(str, &ch, 1);
+		}
 	}
 
+	int a = 0;
+	int b = 0;
 
-	printf(str);
+
+	//convert the string into the grid
+	for(int i = 0; i < 81; i += 1)
+	{
+		if(b == 9)
+		{
+			b = 0;
+			a += 1;
+		}
+
+		if(a == 9)
+			break;
+
+		int j = 0;
+
+		if(str[i] != '.')
+			j = str[i] - '0';
+
+		grid[a][b] = j;
+
+		b += 1;
+	}
+
 }
 
 
@@ -137,13 +168,12 @@ int main(int argc, char** argv)
         	exit( 0 );
 	}
 
-	to_grid(ptr);
+	int grid[N][N];
+	to_grid(ptr, grid);
 
-	//int grid[N][N] = to_grid(ptr);
-
-	//if (solveSudoku(grid, 0, 0)==1)
-		//print(grid);
-	//else
+	if (solveSudoku(grid, 0, 0)==1)
+		print(grid);
+	else
 		printf("No solution exists");
 
 	return 0;
