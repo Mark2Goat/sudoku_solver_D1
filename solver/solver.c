@@ -1,13 +1,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <err.h>
 
 // N is the size of the 2D matrix N*N
 #define N 9
 
 
-//convert the file into a grid
+//convert the matrix of sudoku into one long string
+void to_str(int grid[N][N], char str[110])
+{
 
+	int a = 0;
+	for(int i = 0; i < 9; i += 1)
+	{
+		if(i == 3 || i == 6)
+		{
+			str[a] = '\n';
+			a += 1;
+		}
+
+		for(int j = 0; j < 9; j += 1)
+		{
+			if(j == 3 || j == 6)
+			{
+				str[a] = ' ';
+				a += 1;
+			}
+
+			str[a] = (char)(grid[i][j] + '0');
+			a += 1;
+		}
+
+		str[a] = '\n';
+		a += 1;
+	}
+}
+
+
+//convert the file into a grid
 void to_grid(FILE* ptr, int grid[N][N])
 {
 	char str[81];
@@ -171,8 +202,20 @@ int main(int argc, char** argv)
 	int grid[N][N];
 	to_grid(ptr, grid);
 
+	fclose(ptr);
+
 	if (solveSudoku(grid, 0, 0)==1)
-		print(grid);
+	{
+		char str[110];
+		to_str(grid, str);
+
+		char* name = argv[1];
+		strncat(name, ".result", 7);
+
+		ptr = fopen(name, "w");
+		fprintf(ptr, str);
+		fclose(ptr);
+	}
 	else
 		printf("No solution exists");
 
