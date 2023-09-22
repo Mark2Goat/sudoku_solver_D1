@@ -1,8 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // N is the size of the 2D matrix N*N
 #define N 9
+
+void to_grid(FILE* ptr)
+{
+	char str[110];
+	char ch;
+	while(!feof(ptr))
+	{
+		ch = fgetc(ptr);
+		if(&ch != 0)
+			strncat(str, &ch, 1);
+	}
+
+
+	printf(str);
+}
+
 
 /* A utility function to print grid */
 void print(int arr[N][N])
@@ -21,7 +38,6 @@ void print(int arr[N][N])
 int isSafe(int grid[N][N], int row,
 					int col, int num)
 {
-	
 	// Check if we find the same num
 	// in the similar row , we return 0
 	for (int x = 0; x <= 8; x++)
@@ -109,22 +125,25 @@ int solveSudoku(int grid[N][N], int row, int col)
 	return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-	// 0 means unassigned cells
-	int grid[N][N] = { { 3, 0, 6, 5, 0, 8, 4, 0, 0 },
-					{ 5, 2, 0, 0, 0, 0, 0, 0, 0 },
-					{ 0, 8, 7, 0, 0, 0, 0, 3, 1 },
-					{ 0, 0, 3, 0, 1, 0, 0, 8, 0 },
-					{ 9, 0, 0, 8, 6, 3, 0, 0, 5 },
-					{ 0, 5, 0, 0, 9, 0, 6, 0, 0 },
-					{ 1, 3, 0, 0, 0, 0, 2, 5, 0 },
-					{ 0, 0, 0, 0, 0, 0, 0, 7, 4 },
-					{ 0, 0, 5, 2, 0, 6, 3, 0, 0 } };
+	if (argc != 2)
+		errx(EXIT_FAILURE,"only one file should be traited");
 
-	if (solveSudoku(grid, 0, 0)==1)
-		print(grid);
-	else
+	FILE* ptr = fopen(argv[1], "r");
+	if ( ptr == NULL )
+	{
+        	printf( "Cannot open file %s\n", argv[0] );
+        	exit( 0 );
+	}
+
+	to_grid(ptr);
+
+	//int grid[N][N] = to_grid(ptr);
+
+	//if (solveSudoku(grid, 0, 0)==1)
+		//print(grid);
+	//else
 		printf("No solution exists");
 
 	return 0;
