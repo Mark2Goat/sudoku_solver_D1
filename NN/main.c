@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <err.h>
 
 
 
@@ -38,6 +39,21 @@ void shuffle(int *array, size_t n)
 }
 
 
+//_____________________________________Propagation_________________________________
+
+void fProp(double* layer, int layerLen, double layerWeights[][layerLen], double* layerBias, double* prevLayer, int prevLayerLen)
+{
+	for (int j  = 0; j < layerLen; j++)
+	{
+		double activation = layerBias[j];
+		for (int k = 0; k < prevLayerLen; k++)
+		{
+			activation += prevLayer[k] * layerWeights[k][j];
+		}
+		layer[j] = sigmoid(activation);
+	}
+
+}
 
 
 
@@ -45,10 +61,14 @@ void shuffle(int *array, size_t n)
 int main(int argc, const char* argv[])
 {
 
+	if (argc != 2)
+		errx(1, "Need (1) argumment : number of training epochs (>=10)");
+
+
 	//______________________def Const_________________________________
 	
 
-	srand(time(NULL));
+	srand(time(NULL)-clock());
 
 	static const int numInputs = 2;
 	static const int numHiddenNodes = 2;
@@ -56,7 +76,8 @@ int main(int argc, const char* argv[])
 	
 	int epochs = strtol(argv[1], NULL, 10);
 
-	const double lr = 0.1f;
+	const double lr = 0.2f;
+	const double momentum = 0.0f;
 
 	double hiddenLayer[numHiddenNodes];
 	double outputLayer[numOutputs];
@@ -113,7 +134,6 @@ int main(int argc, const char* argv[])
 
 
 
-
 	//______________________Training__________________________________
 
 	int trainingSetOrder[] = {0,1,2,3};
@@ -126,26 +146,11 @@ int main(int argc, const char* argv[])
 		{
 			int i = trainingSetOrder[x];
 
-			// Forward propagation
-			for (int j  = 0; j < numHiddenNodes; j++)
-			{
-				double activation = hiddenLayerBias[j];
-				for (int k = 0; k < numInputs; k++)
-				{
-					activation += training_inputs[i][k] * hiddenWeights[k][j];
-				}
-				hiddenLayer[j] = sigmoid(activation);
-			}
+			// Propagate forward from input to hidden layer then from hidden layer to ouput
 
-			for (int j  = 0; j < numOutputs; j++)
-			{
-				double activation = outputLayerBias[j];
-				for (int k = 0; k < numHiddenNodes; k++)
-				{
-					activation += hiddenLayer[k] * outputWeights[k][j];
-				}
-				outputLayer[j] = sigmoid(activation);
-			}
+			fProp(hiddenLayer, numHiddenNodes, hiddenWeights, hiddenLayerBias, training_inputs[i], numInputs);
+			fProp(outputLayer, numOutputs, outputWeights, outputLayerBias, hiddenLayer, numHiddenNodes);
+
 
 			// Backwards propagation
 			double deltaOutput[numOutputs];
@@ -168,21 +173,32 @@ int main(int argc, const char* argv[])
 			
 			for (int j = 0; j < numOutputs; j++)
 			{
-				outputLayerBias[j] += deltaOutput[j] * lr;
+				outputLayerBias[j] += deltaOutput[j] * lr + outputLayerBias[j] * momentum;
 				for (int k = 0; k < numHiddenNodes; k++)
 				{
-					outputWeights[k][j] += hiddenLayer[k] * deltaOutput[j] * lr;
+					outputWeights[k][j] += hiddenLayer[k] * deltaOutput[j] * lr + outputWeights[k][j] * momentum;
 				}
 			}
 
 			for (int j = 0; j < numHiddenNodes; j++)
 			{
-				hiddenLayerBias[j] += deltaHidden[j] * lr;
+				hiddenLayerBias[j] += deltaHidden[j] * lr + hiddenLayerBias[j] * momentum;
 				for (int k = 0; k < numInputs; k++)
 				{
-					hiddenWeights[k][j] += training_inputs[i][k] * deltaHidden[j] * lr;
+					hiddenWeights[k][j] += training_inputs[i][k] * deltaHidden[j] * lr + hiddenWeights[k][j] * momentum;
 				}
 			}
+		}
+		if (n%(epochs/10) == 0)
+		{
+			printf("Epoch: %d\n", n);
+			for (int i = 0; i < numTrainingSets; i++)
+			{
+				fProp(hiddenLayer, numHiddenNodes, hiddenWeights, hiddenLayerBias, training_inputs[i], numInputs);
+				fProp(outputLayer, numOutputs, outputWeights, outputLayerBias, hiddenLayer, numHiddenNodes);
+				printf("\tinput: %.0lf & %.0lf  ->  %lf\n", training_inputs[i][0], training_inputs[i][1], outputLayer[0]);
+			}
+			printf("\n\n");
 		}
 	}
 	
@@ -207,7 +223,7 @@ int main(int argc, const char* argv[])
 			}
 			outputLayer[j] = sigmoid(activation);
 		}
-		printf("input: %lf & %lf  ->  %lf", training_inputs[i][0], training_inputs[i][1], outputLayer[0]);
+		printf("input: %.0lf & %.0lf  ->  %lf\n", training_inputs[i][0], training_inputs[i][1], outputLayer[0]);
 	}
 
 	return EXIT_SUCCESS;
