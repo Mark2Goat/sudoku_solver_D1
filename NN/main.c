@@ -60,7 +60,7 @@ void initWeights(double* weights, int len, int* topography)
 {
 	// Initializes the weights depending on the number of neurons in the
 	// layer they come from with normally distributed random numbers with
-	// mean 0 and standard deviation of sqrt(n) with n number of neurons
+	// mean 0 and standard deviation of 1/sqrt(n) with n number of neurons
 	// in the previous layer
 
 	int layer = 0;
