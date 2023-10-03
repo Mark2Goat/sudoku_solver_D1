@@ -30,6 +30,27 @@ void sigmoid(double* z, double* activations, int layer, int* topography)
 	}
 }
 
+void sigmoid_prime(double* z, double* activations, int layer, int* topography)
+{
+	// Apply the derivative of the sigmoid function to the neuron's ouputs of the layer specified
+	// And store it in activations
+
+	int neurons = 0;
+	int currentLayer = 0;
+	while (currentLayer < layer)
+	{
+		neurons += topography[currentLayer];
+		currentLayer++;
+	}
+
+	int i = 0;
+	while (i < topography[layer])
+	{
+		activations[neurons + i] = (1/(1+exp(-z[neurons + i]))) * (1 - (1/(1+exp(-z[neurons + i]))));
+		i++;
+	}
+}
+
 //_______Utils________________________
 
 void printArr(double* arr, int len)
