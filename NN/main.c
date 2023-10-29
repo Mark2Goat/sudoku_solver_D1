@@ -66,14 +66,14 @@ int main(int argc, const char* argv[])
 
 
 	//______________________def Const_________________________________
-	
+
 
 	srand(time(NULL)-clock());
 
 	static const int numInputs = 2;
 	static const int numHiddenNodes = 2;
 	static const int numOutputs = 1;
-	
+
 	int epochs = strtol(argv[1], NULL, 10);
 
 	const double lr = 0.2f;
@@ -103,10 +103,10 @@ int main(int argc, const char* argv[])
 		{ 1.0f },
 		{ 0.0f },
 	};
-	
-	
+
+
 	//______________________Init Params_______________________________
-	
+
 	for (int i = 0; i < numInputs; i++)
 	{
 		for (int j = 0; j < numHiddenNodes; j++)
@@ -137,7 +137,7 @@ int main(int argc, const char* argv[])
 	//______________________Training__________________________________
 
 	int trainingSetOrder[] = {0,1,2,3};
-	
+
 	for (int n = 0; n < epochs; n++)
 	{
 		shuffle(trainingSetOrder, numTrainingSets);
@@ -170,7 +170,7 @@ int main(int argc, const char* argv[])
 				}
 				deltaHidden[j] = errorHidden * dSigmoid(hiddenLayer[j]);
 			}
-			
+
 			for (int j = 0; j < numOutputs; j++)
 			{
 				outputLayerBias[j] += deltaOutput[j] * lr + outputLayerBias[j] * momentum;
@@ -201,7 +201,7 @@ int main(int argc, const char* argv[])
 			printf("\n\n");
 		}
 	}
-	
+
 	for (int i = 0; i < numTrainingSets; i++)
 	{
 		for (int j  = 0; j < numHiddenNodes; j++)
