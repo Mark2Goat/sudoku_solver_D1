@@ -149,11 +149,11 @@ int main(int argc, char** argv)
 	//____________________________Params Init______________________________
 	
 	// Initialize random number generator
-	srand(time(NULL));
 	
 
 
 	 
+	srand(time(NULL));	 
 
 
 	//____________________________Main Execution___________________________
@@ -178,7 +178,6 @@ int main(int argc, char** argv)
 	initWeights(w, 10, topography2);
 	printArr(w, 10);
 
-	
 
 	return EXIT_SUCCESS;
 }
