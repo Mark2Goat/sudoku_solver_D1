@@ -3,6 +3,16 @@
 #include <stdio.h>
 #include <err.h>
 
+Uint32 puissance(int x, int n)
+{
+	Uint32 res = 1;
+
+	for(int i = 0; i < n; i++)
+		res = res * x;
+
+	return res;
+}
+
 int fact(int n)
 {
 	if(n <= 1) return 1;
@@ -14,19 +24,84 @@ int KparmisN(int k, int n)
 	return fact(n) / (fact(k) * fact(n - k));
 }
 
+//Create a gauss matrix of n*n to make a good blur
+//See https://fr.wikipedia.org/wiki/Noyau_(traitement_d'image)
 int** GaussMat(int n)
 {
 	int** a = malloc(n*sizeof(int));
+	int* binome = malloc(n*sizeof(int));
+
+	//calcul every coef of the mat
+	for(size_t i = 0; i < (size_t)n; i++)
+		binome[i] = KparmisN(i,n);
+
+	//create the mat
 	for(size_t i = 0; i < (size_t)n; i++)
 	{
 		a[i] = malloc(n*sizeof(int));
-		for(size_t j = 0; j < (size_t)n; j++)
-		{
 
-		}
+		for(size_t j = 0; j < (size_t)n; j++)
+			a[i][j] = binome[j] * binome[j];
+
 	}
+	free(binome);
+
 	return a;
 }
+
+Uint32 ApplyMatOnPix(SDL_Surface* image, int** mat, size_t n,
+			ssize_t i, ssize_t j, char blur)
+{
+	Uint32 tot = 0;
+	Uint32* pixels = image->pixels;
+
+	i--;
+	j--;
+	for(size_t m = 0; m < n; m++)
+	{
+		for(size_t p = 0; p < n; p++)
+		{
+			if(i >= 0 && i < image->h
+				&& j >= 0 && j < image->w)
+				tot += mat[m][p] *
+					pixels[i * image->h + j];
+
+			j++;
+		}
+
+		i++;
+		j = j - n + 1;
+	}
+	if(blur) tot = tot / puissance(2, 2*((int)n +1));
+
+	return tot;
+
+}
+
+
+void ApplyMatOnImage(int** mat, size_t n,
+			SDL_Surface* image, char blur)
+{
+	Uint32* pixels = image->pixels;
+
+	SDL_LockSurface(image);
+
+	//run through the list to get every pixel
+	for(ssize_t i = 0; i < image->h; i++)
+	{
+		for(ssize_t j = 0; j < image->w; i++)
+		{
+			pixels[i * image->h + j] =
+				ApplyMatOnPix(image,
+					mat, n, i, j, blur);
+		}
+	}
+
+	SDL_UnlockSurface(image);
+
+}
+
+
 
 Uint32 PtG(Uint32 pixel_color, SDL_PixelFormat* format)
 {
@@ -113,7 +188,8 @@ int main(int argc, char** argv)
 
 
 	//blur
-
+	int** gauss = GaussMat(3);
+	ApplyMatOnImage(gauss, 3, image, 1);
 
 
 
