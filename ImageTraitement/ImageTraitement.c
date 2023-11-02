@@ -1,8 +1,68 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
+#include <err.h>
 
-void grayscale
+int fact(int n)
+{
+	if(n <= 1) return 1;
+	return n * fact(n - 1);
+}
+
+int KparmisN(int k, int n)
+{
+	return fact(n) / (fact(k) * fact(n - k));
+}
+
+int** GaussMat(int n)
+{
+	int** a = malloc(n*sizeof(int));
+	for(size_t i = 0; i < (size_t)n; i++)
+	{
+		a[i] = malloc(n*sizeof(int));
+		for(size_t j = 0; j < (size_t)n; j++)
+		{
+
+		}
+	}
+	return a;
+}
+
+Uint32 PtG(Uint32 pixel_color, SDL_PixelFormat* format)
+{
+	Uint8 r, g, b;
+
+	SDL_GetRGB(pixel_color, format,&r, &g, &b);
+
+	Uint8 average = 0.3*r+0.59*g+0.11*b;
+
+	if(average <= 127) average = 0;
+
+	else average = 255;
+
+	Uint32 color = SDL_MapRGB(format, average, average, average);
+
+	return color;
+}
+
+void grayscale(SDL_Surface* image)
+{
+	Uint32* pixels = image->pixels;
+
+	int len = image->w * image->h;
+
+	SDL_PixelFormat* format = image->format;
+
+	if(format == NULL)
+		errx(EXIT_FAILURE, "can't find the format of the image");
+
+	SDL_LockSurface(image);
+
+	for(size_t i = 0; i < (size_t)len; i++)
+		pixels[i] = PtG(pixels[i], format);
+
+	SDL_UnlockSurface(image);
+}
 
 
 int main(int argc, char** argv)
@@ -15,7 +75,7 @@ int main(int argc, char** argv)
 	SDL_Init(SDL_INIT_VIDEO);
 	IMG_Init(IMG_INIT_JPG);
 
-	SDL_Surface* image = IMG_Load("%s", argv[1]);
+	SDL_Surface* image = IMG_Load(argv[1]);
 	if(!image)
 	{
 		err(EXIT_FAILURE, "Image NULL");
@@ -45,19 +105,20 @@ int main(int argc, char** argv)
 	}
 
 	//grayscale + Black n white
-
+	grayscale(image);
 
 
 	//rotate
 
 
 
-	//vage
+	//blur
+
 
 
 
 	// save target surface to JPEG file
-	IMG_SaveJPG(output_surface, "output_%s", argv[1], 90);
+	IMG_SaveJPG(output_surface, "output.jpeg", 90);
 
 
 	//free the memory
