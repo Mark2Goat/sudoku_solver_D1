@@ -32,7 +32,8 @@ void sigmoid(double* z, double* activations, int layer, int* topography)
 
 void sigmoid_prime(double* z, double* activations, int layer, int* topography)
 {
-	// Apply the derivative of the sigmoid function to the neuron's ouputs of the layer specified
+	// Apply the derivative of the sigmoid function
+	// to the neuron's ouputs of the layer specified
 	// And store it in activations
 
 	int neurons = 0;
@@ -132,7 +133,30 @@ void initArr(double* arr, int len, double number)
 
 //________________________________Propagations_________________________________
 
-void forwardProp(double* weights)
+double* dotProduct(double* weights, double* z, double* activations, int layer, int* topography)
+{
+	
+	int neurons = 0;
+	int currentLayer = 0;
+	while (currentLayer < layer)
+	{
+		neurons += topography[currentLayer];
+		currentLayer++;
+	}
+	
+	int i = 0;
+	while (i < topography[layer])
+	{
+		z[neurons + i] = weights[neurons + i] * activations[neurons
+	}
+}
+
+void dotsum()
+{
+	return;
+}
+
+void forwardProp(double* weights, )
 {
 	return;
 }	
@@ -150,8 +174,6 @@ int main(int argc, char** argv)
 	
 	// Initialize random number generator
 	
-
-
 	 
 	srand(time(NULL));	 
 
