@@ -46,7 +46,8 @@ void sigmoid_prime(double* z, double* activations, int layer, int* topography)
 	int i = 0;
 	while (i < topography[layer])
 	{
-		activations[neurons + i] = (1/(1+exp(-z[neurons + i]))) * (1 - (1/(1+exp(-z[neurons + i]))));
+		activations[neurons + i] = (1/(1+exp(-z[neurons + i]))) * 
+				      (1 - (1/(1+exp(-z[neurons + i]))));
 		i++;
 	}
 }
@@ -109,8 +110,32 @@ void initBiases(double* biases, int len)
 	}
 }
 
+int getNumNeurons(int* topography, int len)
+{
+	int sum = 0;
+	for (int i = 0; i < len; i++)
+	{
+		sum += topography[i];
+	}
+	return sum;
+}
 
+void initArr(double* arr, int len, double number)
+{
+	// Initializes the array with the number number
+	
+	for (int i = 0; i < len; i++)
+	{
+		arr[i] = number;
+	}
+}
 
+//________________________________Propagations_________________________________
+
+void forwardProp(double* weights)
+{
+	return;
+}	
 
 
 //________________________________Main Program_________________________________
@@ -125,6 +150,7 @@ int main(int argc, char** argv)
 	
 	// Initialize random number generator
 	srand(time(NULL));
+	
 
 
 	 
@@ -135,12 +161,19 @@ int main(int argc, char** argv)
 
 	//____________________________Tests____________________________________
 
-	double z[] = {1,1,1,1,1};
-	double activations[] = {0,0,0,0,0};
-	int topography[] = {2,1,2};
-	sigmoid(z, activations, 1, topography);
+	int topography[] = {2,2,1};
+	int numNeurons = getNumNeurons(topography, sizeof(topography));
+	printf("%d\n", numNeurons);
+	double z[numNeurons];
+	double activations[numNeurons];
+	initArr(z, numNeurons, 1); 
+	initArr(activations, numNeurons, 0);
+	printArr(z, numNeurons);
+	printArr(activations, numNeurons);
+	sigmoid(z, activations, 2, topography);
+	printArr(activations, numNeurons);
 
-	int topography2[10] = {1,1,1,1,1,1,1,1,1,1};
+	int topography2[] = {100,1,1,1,1,1,1,1,1,1};
 	double w[10] = {0};
 	initWeights(w, 10, topography2);
 	printArr(w, 10);
