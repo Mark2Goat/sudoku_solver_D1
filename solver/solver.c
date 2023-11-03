@@ -32,7 +32,7 @@ void to_str(int grid[N][N], char str[110])
 			a += 1;
 		}
 
-		str[a] = '\n';
+		if(a != 109) str[a] = '\n';
 		a += 1;
 	}
 }
@@ -83,8 +83,7 @@ void to_grid(FILE* ptr, int grid[N][N])
 }
 
 // Checks whether it will be legal to assign num to the given row, col
-int isSafe(int grid[N][N], int row,
-					int col, int num)
+int isSafe(int grid[N][N], int row, int col, int num)
 {
 	// Check if we find the same num in the similar row , we return 0
 	for (int x = 0; x <= 8; x++)
@@ -97,13 +96,11 @@ int isSafe(int grid[N][N], int row,
 			return 0;
 
 	// Check if we find the same num in the particular 3*3 matrix, we return 0
-	int startRow = row - row % 3,
-				startCol = col - col % 3;
+	int startRow = row - row % 3, startCol = col - col % 3;
 
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
-			if (grid[i + startRow][j +
-						startCol] == num)
+			if (grid[i + startRow][j + startCol] == num)
 				return 0;
 
 	return 1;
