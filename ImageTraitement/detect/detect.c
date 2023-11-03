@@ -4,6 +4,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
+#ifndef M_PI
+#define M_PI 3.141592653589793
+#endif
+
 void putpixel(SDL_Surface* surface, int x, int y, Uint32 pixel) {
     int bpp = surface->format->BytesPerPixel;
     Uint8* p = (Uint8*)surface->pixels + y * surface->pitch + x * bpp;
