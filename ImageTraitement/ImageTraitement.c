@@ -91,14 +91,18 @@ int** GaussMat(int n)
 	return a;
 }
 
+//******************************************************************************************//
 void ApplyMatOnPix(SDL_Surface* image, int** mat, int n, int x, int y, char blur)
 {
 	Uint8 r, g, b;
 	int newR = 0, newG = 0, newB = 0;
+	int m = 1;
+	if(n == 5) m = 2;
 
-	for(int i = -1; i <= 1; i++)
+
+	for(int i = -m; i <= m; i++)
 	{
-		for(int j = -1; j <= 1; j++)
+		for(int j = -m; j <= m; j++)
 		{
 			int nx = x + i;
 			int ny = y + j;
@@ -108,9 +112,9 @@ void ApplyMatOnPix(SDL_Surface* image, int** mat, int n, int x, int y, char blur
 				Uint32 pixel = getpixel(image, ny, nx);
 				SDL_GetRGB(pixel, image->format, &r, &g, &b);
 
-				newR += mat[i+1][j+1] * r;
-				newG += mat[i+1][j+1] * g;
-				newB += mat[i+1][j+1] * b;
+				newR += mat[i+m][j+m] * r;
+				newG += mat[i+m][j+m] * g;
+				newB += mat[i+m][j+m] * b;
 			}
 		}
 	}
@@ -128,7 +132,7 @@ void ApplyMatOnPix(SDL_Surface* image, int** mat, int n, int x, int y, char blur
 }
 
 
-void ApplyMatOnImage(int** mat, int n,
+SDL_Surface* ApplyMatOnImage(int** mat, int n,
 			SDL_Surface* image, char blur)
 {
 	SDL_LockSurface(image);
@@ -144,10 +148,81 @@ void ApplyMatOnImage(int** mat, int n,
 
 	SDL_UnlockSurface(image);
 
+	return image;
+
 }
 
 
-void grayscale(SDL_Surface* image, int ave)
+//********************************************************************************//
+//Prewit algorithm, help us to find every ledge on our image//
+//*******************************************************************************//
+void PrewitOnPix(SDL_Surface* image, SDL_Surface* imageToTrans, int mat[3][3], int x, int y)
+{
+        Uint8 r, g, b;
+        int newR = 0, newG = 0, newB = 0;
+
+        for(int i = -1; i <= 1; i++)
+        {
+                for(int j = -1; j <= 1; j++)
+                {
+                        int nx = x + i;
+                        int ny = y + j;
+                        if(nx >= 0 && nx < image->h
+                                && ny >= 0 && ny < image->w)
+                        {
+                                Uint32 pixel = getpixel(image, ny, nx);
+                                SDL_GetRGB(pixel, image->format, &r, &g, &b);
+
+                                newR += mat[i+1][j+1] * r;
+                                newG += mat[i+1][j+1] * g;
+                                newB += mat[i+1][j+1] * b;
+                        }
+                }
+        }
+
+        Uint32 pix = SDL_MapRGB(image->format, (Uint8)newR, (Uint8)newG, (Uint8)newB);
+        putpixel(imageToTrans, y, x, pix);
+
+}
+
+void PrewitOnImage(int mat[3][3], SDL_Surface* image, SDL_Surface* imageToTrans)
+{
+        SDL_LockSurface(imageToTrans);
+
+        //run through the list to get every pixel
+        for(int i = 0; i < image->h; i++)
+        {
+                for(int j = 0; j < image->w; j++)
+                {
+                        PrewitOnPix(image, imageToTrans, mat, i, j);
+                }
+        }
+
+        SDL_UnlockSurface(imageToTrans);
+
+}
+
+void merge(SDL_Surface* image, SDL_Surface* image2)
+{
+	SDL_LockSurface(image);
+
+	for(int i = 0; i < image->h; i++)
+	{
+		for(int j = 0; j < image->w; j++)
+		{
+			Uint32 pix1 = getpixel(image, j, i);
+			Uint32 pix2 = getpixel(image2, j, i);
+			if(pix2 > pix1) putpixel(image, j, i, pix2);
+		}
+	}
+
+	SDL_UnlockSurface(image);
+
+}
+
+//*****************************************************************************************//
+
+void grayscale(SDL_Surface* image)
 {
 	Uint32 pixel;
 	Uint8 r, g, b, a;
@@ -160,10 +235,6 @@ void grayscale(SDL_Surface* image, int ave)
 			SDL_GetRGBA(pixel, image->format, &r, &g, &b, &a);
 
 			Uint8 average = 0.3*r+0.59*g+0.11*b;
-			//average = (average / 16)*16;
-
-			if((int)pixel <= ave) average = 0;
-			else average = 255;
 
 			pixel = SDL_MapRGBA(image->format, average, average, average, a);
 			putpixel(image, j, i, pixel);
@@ -171,6 +242,7 @@ void grayscale(SDL_Surface* image, int ave)
 	}
 }
 
+//*********************************************************************************************//
 
 int main(int argc, char** argv)
 {
@@ -200,21 +272,8 @@ int main(int argc, char** argv)
 	//	//find the angle automatically
 	//}
 
-
 	//grayscale + Black n white
-	int average = 0;
-	int count = 0;
-	for(int x = 0; x < image->h; x++)
-	{
-		for(int y = 0; y < image->w; y++)
-		{
-			average += getpixel(image, y, x);
-			count++;
-		}
-	}
-	average = average / count;
-
-	grayscale(image, average);
+	grayscale(image);
 
 
 	//rotate
@@ -222,11 +281,32 @@ int main(int argc, char** argv)
 
 
 	//blur
-	//int size = 5;
-	//int** gauss = GaussMat(size);
-	//ApplyMatOnImage(gauss, size, image, 1);
+	int size = 5;
+	int** gauss = GaussMat(size);
+	ApplyMatOnImage(gauss, size, image, 1);
 
 
+	//ledge finder
+	int prewit1[3][3] = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
+	int prewit2[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+	int prewit3[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+        int prewit4[3][3] = {{1, 0, -1}, {2, 0, -2}, {1, 0, -1}};
+
+	SDL_Surface* image1 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
+	SDL_Surface* image2 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
+	SDL_Surface* image3 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
+        SDL_Surface* image4 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
+
+	PrewitOnImage(prewit1, image, image1);
+	PrewitOnImage(prewit2, image, image2);
+	PrewitOnImage(prewit3, image, image3);
+        PrewitOnImage(prewit4, image, image4);
+
+	merge(image1, image2);
+	merge(image3, image4);
+	merge(image1, image3);
+
+	IMG_SaveJPG(image1, "prewit1.jpg", 100);
 
 	// save target surface to JPEG file
 	IMG_SaveJPG(image, "output.jpg", 100);
@@ -234,6 +314,10 @@ int main(int argc, char** argv)
 
 	//free the memory
 	SDL_FreeSurface(image);
+	SDL_FreeSurface(image1);
+	SDL_FreeSurface(image2);
+        SDL_FreeSurface(image3);
+        SDL_FreeSurface(image4);
 
 	IMG_Quit();
 	SDL_Quit();
