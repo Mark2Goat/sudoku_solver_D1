@@ -179,6 +179,9 @@ void PrewitOnPix(SDL_Surface* image, SDL_Surface* imageToTrans, int mat[3][3], i
                         }
                 }
         }
+	newR = newR/9;
+	newG = newG/9;
+	newB = newB/9;
 
         Uint32 pix = SDL_MapRGB(image->format, (Uint8)newR, (Uint8)newG, (Uint8)newB);
         putpixel(imageToTrans, y, x, pix);
@@ -287,10 +290,10 @@ int main(int argc, char** argv)
 
 
 	//ledge finder
-	int prewit1[3][3] = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
-	int prewit2[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-	int prewit3[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
-        int prewit4[3][3] = {{1, 0, -1}, {2, 0, -2}, {1, 0, -1}};
+	int prewit1[3][3] = {{1, 1, 1}, {0, 0, 0}, {-1, -1, -1}};
+	int prewit2[3][3] = {{-1, -1, -1}, {0, 0, 0}, {1, 1, 1}};
+	int prewit3[3][3] = {{-1, 0, 1}, {-1, 0, 1}, {-1, 0, 1}};
+        int prewit4[3][3] = {{1, 0, -1}, {1, 0, -1}, {1, 0, -1}};
 
 	SDL_Surface* image1 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
 	SDL_Surface* image2 = SDL_CreateRGBSurface(0, image->w, image->h, 32, 0, 0, 0, 0);
