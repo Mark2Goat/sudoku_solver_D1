@@ -1,69 +1,13 @@
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <time.h>
 #include <err.h>
 
 
-//________________________________Tools________________________________________
 
-//_______Activation Functions_________
+//_____________________________________Tools_______________________________________
 
-void sigmoid(double* z, double* activations, int layer, int* topography)
-{
-	// Apply the sigmoid function to the neuron's ouputs of the layer specified
-	// And store it in activations
-
-	int neurons = 0;
-	int currentLayer = 0;
-	while (currentLayer < layer)
-	{
-		neurons += topography[currentLayer];
-		currentLayer++;
-	}
-
-	int i = 0;
-	while (i < topography[layer])
-	{
-		activations[neurons + i] = 1/(1+exp(-z[neurons + i]));
-		i++;
-	}
-}
-
-void sigmoid_prime(double* z, double* activations, int layer, int* topography)
-{
-	// Apply the derivative of the sigmoid function
-	// to the neuron's ouputs of the layer specified
-	// And store it in activations
-
-	int neurons = 0;
-	int currentLayer = 0;
-	while (currentLayer < layer)
-	{
-		neurons += topography[currentLayer];
-		currentLayer++;
-	}
-
-	int i = 0;
-	while (i < topography[layer])
-	{
-		activations[neurons + i] = (1/(1+exp(-z[neurons + i]))) * 
-				      (1 - (1/(1+exp(-z[neurons + i]))));
-		i++;
-	}
-}
-
-//_______Utils________________________
-
-void printArr(double* arr, int len)
-{
-	// Pretty prints array of double
-	for (int i = 0; i < len; i++)
-	{
-		printf("%lf - ", arr[i]);
-	}
-	printf("\n");
-}
 
 double randomGen()
 {
@@ -76,7 +20,7 @@ double normalRand()
 	// Return normally distributed numbers
 	double u1 = randomGen();
 	double u2 = randomGen();
-	return cos(2*3.1415*u2)*sqrt(-2*log(u1));
+	return fabs(cos(2*3.14159265358979*u2))*sqrt(-2*log(u1));
 }
 
 void initWeights(double* weights, int len, int* topography)
@@ -111,95 +55,224 @@ void initBiases(double* biases, int len)
 	}
 }
 
-int getNumNeurons(int* topography, int len)
+
+double sigmoid(double x)
 {
-	int sum = 0;
-	for (int i = 0; i < len; i++)
-	{
-		sum += topography[i];
-	}
-	return sum;
+	return 1 / (1 + exp(-x));
 }
 
-void initArr(double* arr, int len, double number)
+double dSigmoid(double x)
 {
-	// Initializes the array with the number number
-	
-	for (int i = 0; i < len; i++)
-	{
-		arr[i] = number;
-	}
+	return x * (1 - x);
 }
 
-//________________________________Propagations_________________________________
-
-double* dotProduct(double* weights, double* z, double* activations, int layer, int* topography)
+double init_weight()
 {
-	
-	int neurons = 0;
-	int currentLayer = 0;
-	while (currentLayer < layer)
+	return ( (double)rand()) / ( (double)RAND_MAX);
+}
+
+void shuffle(int *array, size_t n)
+{
+	if(n > 1)
 	{
-		neurons += topography[currentLayer];
-		currentLayer++;
-	}
-	
-	int i = 0;
-	while (i < topography[layer])
-	{
-		z[neurons + i] = weights[neurons + i] * activations[neurons
+		for(size_t i = 0; i < n -1; i++)
+		{
+			size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+			int a = array[j];
+			array[j] = array[i];
+			array[i] = a;
+		}
 	}
 }
 
-void dotsum()
+
+//_____________________________________Propagation_________________________________
+
+void fProp(double* layer, int layerLen, double layerWeights[][layerLen], double* layerBias, double* prevLayer, int prevLayerLen)
 {
-	return;
+	for (int j  = 0; j < layerLen; j++)
+	{
+		double activation = layerBias[j];
+		for (int k = 0; k < prevLayerLen; k++)
+		{
+			activation += prevLayer[k] * layerWeights[k][j];
+		}
+		layer[j] = sigmoid(activation);
+	}
+
 }
 
-void forwardProp(double* weights, )
+
+
+//_____________________________________Main________________________________________
+int main(int argc, const char* argv[])
 {
-	return;
-}	
 
-
-//________________________________Main Program_________________________________
-
-int main(int argc, char** argv)
-{
 	if (argc != 1)
+		errx(1, "Need (1) argumment : number of training epochs (>=10)");
+
+
+	//______________________def Const_________________________________
+	
+
+	srand(time(NULL)-clock());
+
+	static const int numInputs = 2;
+	static const int numHiddenNodes = 8;
+	static const int numOutputs = 1;
+	
+	int epochs = strtol("10000000", NULL, 10);
+
+	const double lr = 0.5f;
+	const double momentum = 0.0f;
+
+	double hiddenLayer[numHiddenNodes];
+	double outputLayer[numOutputs];
+
+	double hiddenLayerBias[numHiddenNodes];
+	double outputLayerBias[numOutputs];
+
+	double hiddenWeights[numInputs][numHiddenNodes];
+	double outputWeights[numHiddenNodes][numOutputs];
+
+	static const int numTrainingSets = 4;
+
+	double training_inputs[][2] = {
+		{ 0.0f, 0.0f },
+		{ 1.0f, 0.0f },
+		{ 0.0f, 1.0f },
+		{ 1.0f, 1.0f }
+	};
+
+	const double training_outputs[][1] = {
+		{ 0.0f },
+		{ 1.0f },
+		{ 1.0f },
+		{ 0.0f },
+	};
+	
+	
+	//______________________Init Params_______________________________
+	
+	for (int i = 0; i < numInputs; i++)
 	{
-		errx(0, "Need zero argument : %d given !\n", argc-1);
+		for (int j = 0; j < numHiddenNodes; j++)
+		{
+			hiddenWeights[i][j] = normalRand()/sqrt(2);
+		}
 	}
-	//____________________________Params Init______________________________
+
+
+	for (int i = 0; i < numInputs; i++)
+	{
+		hiddenLayerBias[i] = normalRand();
+		for (int j = 0; j < numHiddenNodes; j++)
+		{
+			outputWeights[i][j] = normalRand()/sqrt(numHiddenNodes);
+		}
+	}
+
+	for (int i = 0; i < numOutputs; i++)
+	{
+		outputLayerBias[i] = normalRand();
+	}
+
+
+
+
+
+	//______________________Training__________________________________
+
+	int trainingSetOrder[] = {0,1,2,3};
 	
-	// Initialize random number generator
+	for (int n = 0; n < epochs; n++)
+	{
+		shuffle(trainingSetOrder, numTrainingSets);
+
+		for (int x = 0; x < numTrainingSets; x++)
+		{
+			int i = trainingSetOrder[x];
+
+			// Propagate forward from input to hidden layer then from hidden layer to ouput
+
+			fProp(hiddenLayer, numHiddenNodes, hiddenWeights, hiddenLayerBias, training_inputs[i], numInputs);
+			fProp(outputLayer, numOutputs, outputWeights, outputLayerBias, hiddenLayer, numHiddenNodes);
+
+
+			// Backwards propagation
+			double deltaOutput[numOutputs];
+			for (int j = 0; j < numOutputs; j++)
+			{
+				double errorOutput = (training_outputs[i][j] - outputLayer[j]);
+				deltaOutput[j] = errorOutput * dSigmoid(outputLayer[j]) * 2;
+			}
+
+			double deltaHidden[numHiddenNodes];
+			for (int j = 0; j < numHiddenNodes; j++)
+			{
+				double errorHidden = 0.0f;
+				for (int k = 0; k < numOutputs; k++)
+				{
+					errorHidden += deltaOutput[j] * outputWeights[j][k];
+				}
+				deltaHidden[j] = errorHidden * dSigmoid(hiddenLayer[j]);
+			}
+			
+			for (int j = 0; j < numOutputs; j++)
+			{
+				outputLayerBias[j] += deltaOutput[j] * lr + outputLayerBias[j] * momentum;
+				for (int k = 0; k < numHiddenNodes; k++)
+				{
+					outputWeights[k][j] += hiddenLayer[k] * deltaOutput[j] * lr + outputWeights[k][j] * momentum;
+				}
+			}
+
+			for (int j = 0; j < numHiddenNodes; j++)
+			{
+				hiddenLayerBias[j] += deltaHidden[j] * lr + hiddenLayerBias[j] * momentum;
+				for (int k = 0; k < numInputs; k++)
+				{
+					hiddenWeights[k][j] += training_inputs[i][k] * deltaHidden[j] * lr + hiddenWeights[k][j] * momentum;
+				}
+			}
+		}
+		if (n%(epochs/10) == 0)
+		{
+			printf("Epoch: %d\n", n);
+			for (int i = 0; i < numTrainingSets; i++)
+			{
+				fProp(hiddenLayer, numHiddenNodes, hiddenWeights, hiddenLayerBias, training_inputs[i], numInputs);
+				fProp(outputLayer, numOutputs, outputWeights, outputLayerBias, hiddenLayer, numHiddenNodes);
+				printf("\tinput: %.0lf & %.0lf  ->  %lf\n", training_inputs[i][0], training_inputs[i][1], outputLayer[0]);
+			}
+			printf("\n\n");
+		}
+	}
 	
-	 
-	srand(time(NULL));	 
+	for (int i = 0; i < numTrainingSets; i++)
+	{
+		for (int j  = 0; j < numHiddenNodes; j++)
+		{
+			double activation = hiddenLayerBias[j];
+			for (int k = 0; k < numInputs; k++)
+			{
+				activation += training_inputs[i][k] * hiddenWeights[k][j];
+			}
+			hiddenLayer[j] = sigmoid(activation);
+		}
 
-
-	//____________________________Main Execution___________________________
-
-
-	//____________________________Tests____________________________________
-
-	int topography[] = {2,2,1};
-	int numNeurons = getNumNeurons(topography, sizeof(topography));
-	printf("%d\n", numNeurons);
-	double z[numNeurons];
-	double activations[numNeurons];
-	initArr(z, numNeurons, 1); 
-	initArr(activations, numNeurons, 0);
-	printArr(z, numNeurons);
-	printArr(activations, numNeurons);
-	sigmoid(z, activations, 2, topography);
-	printArr(activations, numNeurons);
-
-	int topography2[] = {100,1,1,1,1,1,1,1,1,1};
-	double w[10] = {0};
-	initWeights(w, 10, topography2);
-	printArr(w, 10);
-
+		for (int j  = 0; j < numOutputs; j++)
+		{
+			double activation = outputLayerBias[j];
+			for (int k = 0; k < numHiddenNodes; k++)
+			{
+				activation += hiddenLayer[k] * outputWeights[k][j];
+			}
+			outputLayer[j] = sigmoid(activation);
+		}
+		printf("input: %.0lf & %.0lf  ->  %lf\n", training_inputs[i][0], training_inputs[i][1], outputLayer[0]);
+	}
 
 	return EXIT_SUCCESS;
 }
+
