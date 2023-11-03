@@ -1,17 +1,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
+#include <math.h>
 #include <err.h>
-
-Uint32 puissance(int x, int n)
-{
-	Uint32 res = 1;
-
-	for(int i = 0; i < n; i++)
-		res = res * x;
-
-	return res;
-}
 
 int fact(int n)
 {
@@ -24,6 +15,57 @@ int KparmisN(int k, int n)
 	return fact(n) / (fact(k) * fact(n - k));
 }
 
+Uint32 getpixel(SDL_Surface* surface, int x, int y)
+{
+    int bpp = surface->format->BytesPerPixel;
+    Uint8* p = (Uint8*)surface->pixels + y * surface->pitch + x * bpp;
+
+    switch (bpp) {
+        case 1:
+            return *p;
+        case 2:
+            return *(Uint16*)p;
+        case 3:
+            if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                return p[0] << 16 | p[1] << 8 | p[2];
+            else
+                return p[0] | p[1] << 8 | p[2] << 16;
+        case 4:
+            return *(Uint32*)p;
+        default:
+            return 0;
+    }
+}
+
+
+void putpixel(SDL_Surface* surface, int x, int y, Uint32 pixel) {
+    int bpp = surface->format->BytesPerPixel;
+    Uint8* p = (Uint8*)surface->pixels + y * surface->pitch + x * bpp;
+
+    switch (bpp) {
+        case 1:
+            *p = pixel;
+            break;
+        case 2:
+            *(Uint16*)p = pixel;
+            break;
+        case 3:
+            if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+                p[0] = (pixel >> 16) & 0xFF;
+                p[1] = (pixel >> 8) & 0xFF;
+                p[2] = pixel & 0xFF;
+            } else {
+                p[0] = pixel & 0xFF;
+                p[1] = (pixel >> 8) & 0xFF;
+                p[2] = (pixel >> 16) & 0xFF;
+            }
+            break;
+        case 4:
+            *(Uint32*)p = pixel;
+            break;
+    }
+}
+
 //Create a gauss matrix of n*n to make a good blur
 //See https://fr.wikipedia.org/wiki/Noyau_(traitement_d'image)
 int** GaussMat(int n)
@@ -33,7 +75,7 @@ int** GaussMat(int n)
 
 	//calcul every coef of the mat
 	for(size_t i = 0; i < (size_t)n; i++)
-		binome[i] = KparmisN(i,n);
+		binome[i] = KparmisN(i,n - 1);
 
 	//create the mat
 	for(size_t i = 0; i < (size_t)n; i++)
@@ -41,7 +83,7 @@ int** GaussMat(int n)
 		a[i] = malloc(n*sizeof(int));
 
 		for(size_t j = 0; j < (size_t)n; j++)
-			a[i][j] = binome[j] * binome[j];
+			a[i][j] = binome[i] * binome[j];
 
 	}
 	free(binome);
@@ -49,51 +91,54 @@ int** GaussMat(int n)
 	return a;
 }
 
-Uint32 ApplyMatOnPix(SDL_Surface* image, int** mat, size_t n,
-			ssize_t i, ssize_t j, char blur)
+void ApplyMatOnPix(SDL_Surface* image, int** mat, int n, int x, int y, char blur)
 {
-	Uint32 tot = 0;
-	Uint32* pixels = image->pixels;
+	Uint8 r, g, b;
+	int newR = 0, newG = 0, newB = 0;
 
-	i--;
-	j--;
-	for(size_t m = 0; m < n; m++)
+	for(int i = -1; i <= 1; i++)
 	{
-		for(size_t p = 0; p < n; p++)
+		for(int j = -1; j <= 1; j++)
 		{
-			if(i >= 0 && i < image->h
-				&& j >= 0 && j < image->w)
-				tot += mat[m][p] *
-					pixels[i * image->h + j];
+			int nx = x + i;
+			int ny = y + j;
+			if(nx >= 0 && nx < image->h
+				&& ny >= 0 && ny < image->w)
+			{
+				Uint32 pixel = getpixel(image, ny, nx);
+				SDL_GetRGB(pixel, image->format, &r, &g, &b);
 
-			j++;
+				newR += mat[i+1][j+1] * r;
+				newG += mat[i+1][j+1] * g;
+				newB += mat[i+1][j+1] * b;
+			}
 		}
-
-		i++;
-		j = j - n + 1;
 	}
-	if(blur) tot = tot / puissance(2, 2*((int)n +1));
+	if(blur)
+	{
+		int pui = (int)pow(2, 2*((double)n - 1));
+		newR = newR / pui;
+		newG = newG / pui;
+		newB = newB / pui;
+	}
 
-	return tot;
+	Uint32 pix = SDL_MapRGB(image->format, (Uint8)newR, (Uint8)newG, (Uint8)newB);
+	putpixel(image, y, x, pix);
 
 }
 
 
-void ApplyMatOnImage(int** mat, size_t n,
+void ApplyMatOnImage(int** mat, int n,
 			SDL_Surface* image, char blur)
 {
-	Uint32* pixels = image->pixels;
-
 	SDL_LockSurface(image);
 
 	//run through the list to get every pixel
-	for(ssize_t i = 0; i < image->h; i++)
+	for(int i = 0; i < image->h; i++)
 	{
-		for(ssize_t j = 0; j < image->w; i++)
+		for(int j = 0; j < image->w; j++)
 		{
-			pixels[i * image->h + j] =
-				ApplyMatOnPix(image,
-					mat, n, i, j, blur);
+			ApplyMatOnPix(image, mat, n, i, j, blur);
 		}
 	}
 
@@ -102,41 +147,28 @@ void ApplyMatOnImage(int** mat, size_t n,
 }
 
 
-
-Uint32 PtG(Uint32 pixel_color, SDL_PixelFormat* format)
+void grayscale(SDL_Surface* image, int ave)
 {
-	Uint8 r, g, b;
+	Uint32 pixel;
+	Uint8 r, g, b, a;
 
-	SDL_GetRGB(pixel_color, format,&r, &g, &b);
+	for(int i = 0; i < image->h; i++)
+	{
+		for(int j = 0; j < image->w; j++)
+		{
+			pixel = getpixel(image, j, i);
+			SDL_GetRGBA(pixel, image->format, &r, &g, &b, &a);
 
-	Uint8 average = 0.3*r+0.59*g+0.11*b;
+			Uint8 average = 0.3*r+0.59*g+0.11*b;
+			//average = (average / 16)*16;
 
-	if(average <= 127) average = 0;
+			if((int)pixel <= ave) average = 0;
+			else average = 255;
 
-	else average = 255;
-
-	Uint32 color = SDL_MapRGB(format, average, average, average);
-
-	return color;
-}
-
-void grayscale(SDL_Surface* image)
-{
-	Uint32* pixels = image->pixels;
-
-	int len = image->w * image->h;
-
-	SDL_PixelFormat* format = image->format;
-
-	if(format == NULL)
-		errx(EXIT_FAILURE, "can't find the format of the image");
-
-	SDL_LockSurface(image);
-
-	for(size_t i = 0; i < (size_t)len; i++)
-		pixels[i] = PtG(pixels[i], format);
-
-	SDL_UnlockSurface(image);
+			pixel = SDL_MapRGBA(image->format, average, average, average, a);
+			putpixel(image, j, i, pixel);
+		}
+	}
 }
 
 
@@ -156,31 +188,33 @@ int main(int argc, char** argv)
 		err(EXIT_FAILURE, "Image NULL");
 	}
 
-	// create target surface
-	SDL_Surface *output_surface = SDL_CreateRGBSurface(0,
-            image->w, image->h, 32,
-            0, 0, 0, 0);
-
-	// create software renderer that renders to target surface
-	SDL_Renderer *renderer = SDL_CreateSoftwareRenderer(output_surface);
-
-	// create texture from input surface
-	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, image);
-
 	//find the angle to rotate with
-	int angle = 0;
-	if(argc == 3)
-	{
-		for(size_t i = 0; argv[2][i]; i++)
-			angle = angle * 10 + (int)(argv[2][i] - '0');
-	}
-	else
-	{
-		//find the angle automatically
-	}
+	//int angle = 0;
+	//if(argc == 3)
+	//{
+	//	for(size_t i = 0; argv[2][i]; i++)
+	//		angle = angle * 10 + (int)(argv[2][i] - '0');
+	//}
+	//else
+	//{
+	//	//find the angle automatically
+	//}
+
 
 	//grayscale + Black n white
-	grayscale(image);
+	int average = 0;
+	int count = 0;
+	for(int x = 0; x < image->h; x++)
+	{
+		for(int y = 0; y < image->w; y++)
+		{
+			average += getpixel(image, y, x);
+			count++;
+		}
+	}
+	average = average / count;
+
+	grayscale(image, average);
 
 
 	//rotate
@@ -188,20 +222,18 @@ int main(int argc, char** argv)
 
 
 	//blur
-	int** gauss = GaussMat(3);
-	ApplyMatOnImage(gauss, 3, image, 1);
+	//int size = 5;
+	//int** gauss = GaussMat(size);
+	//ApplyMatOnImage(gauss, size, image, 1);
 
 
 
 	// save target surface to JPEG file
-	IMG_SaveJPG(output_surface, "output.jpeg", 90);
+	IMG_SaveJPG(image, "output.jpg", 100);
 
 
 	//free the memory
-	SDL_DestroyTexture(texture);
 	SDL_FreeSurface(image);
-	SDL_DestroyRenderer(renderer);
-	SDL_FreeSurface(output_surface);
 
 	IMG_Quit();
 	SDL_Quit();
