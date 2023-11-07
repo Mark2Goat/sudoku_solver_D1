@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <err.h>
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -90,7 +91,7 @@ SDL_Surface* houghTransform(SDL_Surface* image){
 					double radians = theta*M_PI/180;
 					int dist = x*cos(radians)+y*sin(radians);
 					dist += maxDist / 2;
-					if(accumulator[theta*maxDist + dist] > image->w*0.4){
+					if(accumulator[theta*maxDist + dist] > image->w*0.5){
 						putpixel(newImage,y,x,255);						
 					}
 				}
@@ -103,6 +104,8 @@ SDL_Surface* houghTransform(SDL_Surface* image){
 
 
 int main(int argc, char** argv){
+	if(argc != 2)
+		err(EXIT_FAILURE, "not anough/too many argument passed to detect");
 	SDL_Surface* image = IMG_Load(argv[1]);
 	//houghTransform(image);
 	
